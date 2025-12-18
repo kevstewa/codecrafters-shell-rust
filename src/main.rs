@@ -12,8 +12,9 @@ fn main() {
         if command.trim() == "exit" {
             break;
         } else if command.starts_with("echo ") {
-            let output = command.splitn(2, ' ').nth(1).unwrap_or("");
+            let output = command.splitn(2, ' ').nth(1).unwrap_or("").trim();
             println!("{}", output);
+            continue;
         }
 
         println!("{}: command not found", command.trim())
