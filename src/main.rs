@@ -1,13 +1,14 @@
 use std::env;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 #[derive(PartialEq)]
 enum BuiltIn {
     Exit,
     Echo,
     Type,
-    Unknown,
+    Unknown(String),
 }
 
 fn eval_cmd(command: &str) -> BuiltIn {
@@ -15,7 +16,7 @@ fn eval_cmd(command: &str) -> BuiltIn {
         "exit" => BuiltIn::Exit,
         "echo" => BuiltIn::Echo,
         "type" => BuiltIn::Type,
-        _ => BuiltIn::Unknown,
+        _ => BuiltIn::Unknown(command.to_string()),
     }
 }
 
@@ -85,19 +86,29 @@ fn main() {
             BuiltIn::Echo => println!("{}", input[1..].join(" ")),
             BuiltIn::Type => {
                 let command = eval_cmd(input[1]);
-                if command != BuiltIn::Unknown {
-                    println!("{} is a shell builtin", input[1]);
-                } else if let Some(s) = &searcher {
-                    if let Some(p) = s.find(input[1]) {
-                        println!("{} is {}", input[1], p.display());
+
+                if let BuiltIn::Unknown(cmd) = command {
+                    if let Some(s) = &searcher {
+                        if let Some(p) = s.find(&cmd) {
+                            println!("{} is {}", cmd, p.display());
+                        } else {
+                            println!("{}: not found", input[1])
+                        }
                     } else {
                         println!("{}: not found", input[1])
                     }
                 } else {
-                    println!("{}: not found", input[1])
+                    println!("{} is a shell builtin", input[1])
                 }
             }
-            _ => println!("{}: command not found", input[0]),
+            BuiltIn::Unknown(cmd) => {
+                if let Ok(output) = Command::new(&cmd).args(&input[1..]).output() {
+                    io::stdout().write_all(&output.stdout).unwrap();
+                    io::stdout().flush().unwrap();
+                } else {
+                    println!("{}: command not found", &cmd);
+                }
+            }
         }
     }
 }
