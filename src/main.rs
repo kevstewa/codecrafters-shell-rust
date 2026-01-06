@@ -1,11 +1,12 @@
 use std::io::{self, Write};
+use std::path::Path;
 use std::process::Command;
 
 mod path_searcher;
 use crate::path_searcher::{BuiltIn, CommandEvaluator};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let evaluator = CommandEvaluator::from_env_path()?;
+    let mut evaluator = CommandEvaluator::from_env_path()?;
 
     loop {
         print!("$ ");
@@ -29,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             BuiltIn::Exec(cmd) => {
-                if let Ok(output) = Command::new(&cmd.file_name().unwrap_or_default())
+                if let Ok(output) = Command::new(cmd.file_name().unwrap_or_default())
                     .args(&input[1..])
                     .output()
                 {
@@ -40,7 +41,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             BuiltIn::Pwd => {
-                println!("{}", evaluator.cwd.display());
+                println!("{}", evaluator.get_cwd().display());
+            }
+            BuiltIn::Cd => {
+                let new_path = Path::new(input[1]);
+                if new_path.is_dir() {
+                    evaluator.set_cwd(new_path);
+                } else {
+                    println!("cd: {}: No such file or directory", input[1]);
+                }
             }
             BuiltIn::Unknown => println!("{}: command not found", &input[0]),
         }

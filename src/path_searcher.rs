@@ -8,12 +8,13 @@ pub enum BuiltIn {
     Type,
     Exec(PathBuf),
     Pwd,
+    Cd,
     Unknown,
 }
 
 pub struct CommandEvaluator {
     dirs: Vec<PathBuf>,
-    pub cwd: PathBuf,
+    cwd: PathBuf,
 }
 
 impl CommandEvaluator {
@@ -48,6 +49,7 @@ impl CommandEvaluator {
             "echo" => BuiltIn::Echo,
             "type" => BuiltIn::Type,
             "pwd" => BuiltIn::Pwd,
+            "cd" => BuiltIn::Cd,
             _ => {
                 if let Some(p) = self.find(command) {
                     BuiltIn::Exec(p)
@@ -76,5 +78,13 @@ impl CommandEvaluator {
         {
             true
         }
+    }
+
+    pub fn get_cwd(&self) -> &PathBuf {
+        &self.cwd
+    }
+
+    pub fn set_cwd(&mut self, path: &Path) {
+        self.cwd = path.to_path_buf();
     }
 }
