@@ -22,30 +22,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             BuiltIn::Type => {
                 let command = evaluator.eval_cmd(input[1]);
 
-                if let BuiltIn::Unknown = command {
-                    if let Some(s) = &evaluator {
-                        if let Some(p) = s.find(input[1]) {
-                            println!("{} is {}", input[1], p.display());
-                        } else {
-                            println!("{}: not found", input[1])
-                        }
-                    } else {
-                        println!("{}: not found", input[1])
-                    }
-                } else {
-                    println!("{} is a shell builtin", input[1])
+                match command {
+                    BuiltIn::Exec(path) => println!("{} is {}", input[1], path.display()),
+                    BuiltIn::Unknown => println!("{}: not found", input[1]),
+                    _ => println!("{} is a shell builtin", input[1]),
                 }
             }
             BuiltIn::Exec(cmd) => {
-                if let Ok(output) = Command::new(&cmd).args(&input[1..]).output() {
+                if let Ok(output) = Command::new(&cmd.file_name().unwrap_or_default())
+                    .args(&input[1..])
+                    .output()
+                {
                     io::stdout().write_all(&output.stdout).unwrap();
                     io::stdout().flush().unwrap();
                 } else {
-                    println!("{}: command not found", &cmd);
+                    println!("{}: command not found", &cmd.display());
                 }
             }
             BuiltIn::Pwd => {
-                println!("{}", cwd.display());
+                println!("{}", evaluator.cwd.display());
             }
             BuiltIn::Unknown => println!("{}: command not found", &input[0]),
         }

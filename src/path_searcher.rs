@@ -6,21 +6,21 @@ pub enum BuiltIn {
     Exit,
     Echo,
     Type,
-    Exec(String),
+    Exec(PathBuf),
     Pwd,
     Unknown,
 }
 
 pub struct CommandEvaluator {
     dirs: Vec<PathBuf>,
-    cwd: PathBuf,
+    pub cwd: PathBuf,
 }
 
 impl CommandEvaluator {
     pub fn from_env_path() -> std::io::Result<Self> {
         let dirs = env::var_os("PATH")
             .map(|paths| env::split_paths(&paths).collect())
-            .unwrap_or_else(Vec::new);
+            .unwrap_or_default();
         let cwd = env::current_dir()?;
 
         Ok(Self { dirs, cwd })
@@ -48,7 +48,13 @@ impl CommandEvaluator {
             "echo" => BuiltIn::Echo,
             "type" => BuiltIn::Type,
             "pwd" => BuiltIn::Pwd,
-            _ => BuiltIn::Exec(command.to_string()),
+            _ => {
+                if let Some(p) = self.find(command) {
+                    BuiltIn::Exec(p)
+                } else {
+                    BuiltIn::Unknown
+                }
+            }
         }
     }
 
